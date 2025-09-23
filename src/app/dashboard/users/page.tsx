@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,14 +14,97 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { mockUsers } from "@/lib/mock-data"
+import { ToastContainer } from "@/components/ui/toast"
+import { UserFormDialog } from "@/components/users/user-form-dialog"
+import { DeleteUserDialog } from "@/components/users/delete-user-dialog"
+import { ViewUserDialog } from "@/components/users/view-user-dialog"
+import { usersApi } from "@/apis/users.api"
+import { plansApi } from "@/apis/plans.api"
+import type { User, Plan } from "@/lib/mock-data"
 import { Search, Plus, Filter, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react"
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [users, setUsers] = useState<User[]>([])
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredUsers = mockUsers.filter(user => {
+  const [formDialog, setFormDialog] = useState({ open: false, mode: "create" as "create" | "edit", user: null as User | null })
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null as User | null })
+  const [viewDialog, setViewDialog] = useState({ open: false, user: null as User | null })
+  const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: "success" | "error" | "info" }>>([])
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    const id = Math.random().toString(36).substring(7)
+    setToasts(prev => [...prev, { id, message, type }])
+  }
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      const [usersData, plansData] = await Promise.all([
+        usersApi.getAll(),
+        plansApi.getAll()
+      ])
+      setUsers(usersData)
+      setPlans(plansData)
+      setError(null)
+    } catch (err) {
+      setError('Failed to load data')
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateUser = async (userData: Partial<User>) => {
+    try {
+      await usersApi.create(userData)
+      await fetchData()
+      showToast("User created successfully", "success")
+    } catch (err) {
+      showToast("Failed to create user", "error")
+      throw err
+    }
+  }
+
+  const handleUpdateUser = async (userData: Partial<User>) => {
+    const userId = formDialog.user?._id || formDialog.user?.id
+    if (!userId) return
+    try {
+      await usersApi.update(userId, userData)
+      await fetchData()
+      showToast("User updated successfully", "success")
+    } catch (err) {
+      showToast("Failed to update user", "error")
+      throw err
+    }
+  }
+
+  const handleDeleteUser = async () => {
+    const userId = deleteDialog.user?._id || deleteDialog.user?.id
+    if (!userId) return
+    try {
+      await usersApi.delete(userId)
+      await fetchData()
+      showToast("User deleted successfully", "success")
+    } catch (err) {
+      showToast("Failed to delete user", "error")
+      throw err
+    }
+  }
+
+  const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || user.status === statusFilter
@@ -41,6 +124,14 @@ export default function UsersPage() {
     }
   }
 
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Loading...</div>
+  }
+
+  if (error) {
+    return <div className="flex justify-center items-center h-64 text-red-600">{error}</div>
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -51,7 +142,7 @@ export default function UsersPage() {
             Manage your platform users and their subscriptions.
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setFormDialog({ open: true, mode: "create", user: null })}>
           <Plus className="h-4 w-4 mr-2" />
           Add User
         </Button>
@@ -127,7 +218,7 @@ export default function UsersPage() {
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user._id || user.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-8 w-8">
@@ -158,14 +249,26 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewDialog({ open: true, user })}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFormDialog({ open: true, mode: "edit", user })}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteDialog({ open: true, user })}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
                       </Button>
                     </div>
                   </TableCell>
@@ -183,7 +286,7 @@ export default function UsersPage() {
             <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{mockUsers.length}</div>
+            <div className="text-2xl font-bold text-gray-900">{users.length}</div>
             <p className="text-sm text-gray-500 mt-1">All registered users</p>
           </CardContent>
         </Card>
@@ -194,7 +297,7 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {mockUsers.filter(u => u.status === "active").length}
+              {users.filter(u => u.status === "active").length}
             </div>
             <p className="text-sm text-gray-500 mt-1">Currently active</p>
           </CardContent>
@@ -206,12 +309,38 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              ${mockUsers.reduce((sum, user) => sum + user.revenue, 0).toLocaleString()}
+              ${users.reduce((sum, user) => sum + user.revenue, 0).toLocaleString()}
             </div>
             <p className="text-sm text-gray-500 mt-1">From all users</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialogs */}
+      <UserFormDialog
+        open={formDialog.open}
+        onOpenChange={(open) => setFormDialog({ ...formDialog, open })}
+        onSubmit={formDialog.mode === "create" ? handleCreateUser : handleUpdateUser}
+        user={formDialog.user}
+        plans={plans}
+        mode={formDialog.mode}
+      />
+
+      <DeleteUserDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
+        onConfirm={handleDeleteUser}
+        user={deleteDialog.user}
+      />
+
+      <ViewUserDialog
+        open={viewDialog.open}
+        onOpenChange={(open) => setViewDialog({ ...viewDialog, open })}
+        user={viewDialog.user}
+      />
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   )
 }

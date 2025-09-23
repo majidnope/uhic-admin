@@ -1,5 +1,6 @@
 export interface User {
-  id: string
+  _id?: string
+  id?: string
   name: string
   email: string
   avatar?: string
@@ -11,7 +12,8 @@ export interface User {
 }
 
 export interface Plan {
-  id: string
+  _id?: string
+  id?: string
   name: string
   price: number
   billing: "monthly" | "yearly"
