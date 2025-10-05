@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectOption } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { User, Plan } from "@/lib/mock-data"
 
 interface UserFormDialogProps {
@@ -30,10 +30,16 @@ export function UserFormDialog({
   plans,
   mode,
 }: UserFormDialogProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    status: "active" | "inactive" | "suspended";
+    plan: string;
+    revenue: number;
+  }>({
     name: "",
     email: "",
-    status: "active" as const,
+    status: "active",
     plan: "",
     revenue: 0,
   })
@@ -41,11 +47,12 @@ export function UserFormDialog({
 
   useEffect(() => {
     if (user && mode === "edit") {
+      const planId = typeof user.plan === 'string' ? user.plan : (user.plan?._id || user.plan?.id || "")
       setFormData({
         name: user.name,
         email: user.email,
         status: user.status as "active" | "inactive" | "suspended",
-        plan: user.plan,
+        plan: planId,
         revenue: user.revenue,
       })
     } else {
@@ -53,7 +60,7 @@ export function UserFormDialog({
         name: "",
         email: "",
         status: "active",
-        plan: plans[0]?.name || "",
+        plan: plans[0]?._id || plans[0]?.id || "",
         revenue: 0,
       })
     }
@@ -110,33 +117,38 @@ export function UserFormDialog({
             <div>
               <Label htmlFor="status">Status</Label>
               <Select
-                id="status"
                 value={formData.status}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    status: e.target.value as "active" | "inactive" | "suspended",
-                  })
+                onValueChange={(value: "active" | "inactive" | "suspended") =>
+                  setFormData({ ...formData, status: value })
                 }
               >
-                <SelectOption value="active">Active</SelectOption>
-                <SelectOption value="inactive">Inactive</SelectOption>
-                <SelectOption value="suspended">Suspended</SelectOption>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
               </Select>
             </div>
 
             <div>
               <Label htmlFor="plan">Plan</Label>
               <Select
-                id="plan"
                 value={formData.plan}
-                onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+                onValueChange={(value) => setFormData({ ...formData, plan: value })}
               >
-                {plans.map((plan) => (
-                  <SelectOption key={plan.id} value={plan.name}>
-                    {plan.name} - ${plan.price}/month
-                  </SelectOption>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="Select plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.map((plan) => (
+                    <SelectItem key={plan._id || plan.id} value={plan._id || plan.id || ''}>
+                      {plan.name} - ${plan.price}/month
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
 

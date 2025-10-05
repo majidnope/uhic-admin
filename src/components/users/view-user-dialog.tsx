@@ -65,7 +65,9 @@ export function ViewUserDialog({ open, onOpenChange, user }: ViewUserDialogProps
                 <CreditCard className="h-4 w-4" />
                 <span className="text-sm font-medium">Plan</span>
               </div>
-              <p className="text-lg font-semibold text-gray-900">{user.plan}</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {typeof user.plan === 'string' ? user.plan : user.plan?.name}
+              </p>
             </div>
 
             <div className="p-4 bg-gray-50 rounded-lg">

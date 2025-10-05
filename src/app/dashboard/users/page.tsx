@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -13,123 +13,154 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { ToastContainer } from "@/components/ui/toast"
-import { UserFormDialog } from "@/components/users/user-form-dialog"
-import { DeleteUserDialog } from "@/components/users/delete-user-dialog"
-import { ViewUserDialog } from "@/components/users/view-user-dialog"
-import { usersApi } from "@/apis/users.api"
-import { plansApi } from "@/apis/plans.api"
-import type { User, Plan } from "@/lib/mock-data"
-import { Search, Plus, Filter, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react"
+} from "@/components/ui/table";
+import { ToastContainer } from "@/components/ui/toast";
+import { UserFormDialog } from "@/components/users/user-form-dialog";
+import { DeleteUserDialog } from "@/components/users/delete-user-dialog";
+import { ViewUserDialog } from "@/components/users/view-user-dialog";
+import { usersApi } from "@/apis/users.api";
+import { plansApi } from "@/apis/plans.api";
+import type { User, Plan } from "@/lib/mock-data";
+import {
+  Search,
+  Plus,
+  Filter,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+} from "lucide-react";
 
 export default function UsersPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [users, setUsers] = useState<User[]>([])
-  const [plans, setPlans] = useState<Plan[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [users, setUsers] = useState<User[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [formDialog, setFormDialog] = useState({ open: false, mode: "create" as "create" | "edit", user: null as User | null })
-  const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null as User | null })
-  const [viewDialog, setViewDialog] = useState({ open: false, user: null as User | null })
-  const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: "success" | "error" | "info" }>>([])
+  const [formDialog, setFormDialog] = useState({
+    open: false,
+    mode: "create" as "create" | "edit",
+    user: null as User | null,
+  });
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    user: null as User | null,
+  });
+  const [viewDialog, setViewDialog] = useState({
+    open: false,
+    user: null as User | null,
+  });
+  const [toasts, setToasts] = useState<
+    Array<{ id: string; message: string; type: "success" | "error" | "info" }>
+  >([]);
 
-  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
-    const id = Math.random().toString(36).substring(7)
-    setToasts(prev => [...prev, { id, message, type }])
-  }
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "info" = "info"
+  ) => {
+    const id = Math.random().toString(36).substring(7);
+    setToasts((prev) => [...prev, { id, message, type }]);
+  };
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   const fetchData = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const [usersData, plansData] = await Promise.all([
         usersApi.getAll(),
-        plansApi.getAll()
-      ])
-      setUsers(usersData)
-      setPlans(plansData)
-      setError(null)
+        plansApi.getAll(),
+      ]);
+      setUsers(usersData);
+      setPlans(plansData);
+      setError(null);
     } catch (err) {
-      setError('Failed to load data')
-      console.error(err)
+      setError("Failed to load data");
+      console.error(err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleCreateUser = async (userData: Partial<User>) => {
     try {
-      await usersApi.create(userData)
-      await fetchData()
-      showToast("User created successfully", "success")
+      await usersApi.create(userData);
+      await fetchData();
+      showToast("User created successfully", "success");
     } catch (err) {
-      showToast("Failed to create user", "error")
-      throw err
+      showToast("Failed to create user", "error");
+      throw err;
     }
-  }
+  };
 
   const handleUpdateUser = async (userData: Partial<User>) => {
-    const userId = formDialog.user?._id || formDialog.user?.id
-    if (!userId) return
+    const userId = formDialog.user?._id || formDialog.user?.id;
+    if (!userId) return;
     try {
-      await usersApi.update(userId, userData)
-      await fetchData()
-      showToast("User updated successfully", "success")
+      await usersApi.update(userId, userData);
+      await fetchData();
+      showToast("User updated successfully", "success");
     } catch (err) {
-      showToast("Failed to update user", "error")
-      throw err
+      showToast("Failed to update user", "error");
+      throw err;
     }
-  }
+  };
 
   const handleDeleteUser = async () => {
-    const userId = deleteDialog.user?._id || deleteDialog.user?.id
-    if (!userId) return
+    const userId = deleteDialog.user?._id || deleteDialog.user?.id;
+    if (!userId) return;
     try {
-      await usersApi.delete(userId)
-      await fetchData()
-      showToast("User deleted successfully", "success")
+      await usersApi.delete(userId);
+      await fetchData();
+      showToast("User deleted successfully", "success");
     } catch (err) {
-      showToast("Failed to delete user", "error")
-      throw err
+      showToast("Failed to delete user", "error");
+      throw err;
     }
-  }
+  };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || user.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge variant="success">Active</Badge>
+        return <Badge variant="success">Active</Badge>;
       case "inactive":
-        return <Badge variant="secondary">Inactive</Badge>
+        return <Badge variant="secondary">Inactive</Badge>;
       case "suspended":
-        return <Badge variant="destructive">Suspended</Badge>
+        return <Badge variant="destructive">Suspended</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status}</Badge>;
     }
-  }
+  };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>
+    return (
+      <div className="flex justify-center items-center h-64">Loading...</div>
+    );
   }
 
   if (error) {
-    return <div className="flex justify-center items-center h-64 text-red-600">{error}</div>
+    return (
+      <div className="flex justify-center items-center h-64 text-red-600">
+        {error}
+      </div>
+    );
   }
 
   return (
@@ -142,7 +173,11 @@ export default function UsersPage() {
             Manage your platform users and their subscriptions.
           </p>
         </div>
-        <Button onClick={() => setFormDialog({ open: true, mode: "create", user: null })}>
+        <Button
+          onClick={() =>
+            setFormDialog({ open: true, mode: "create", user: null })
+          }
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add User
         </Button>
@@ -223,7 +258,10 @@ export default function UsersPage() {
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs">
-                          {user.name.split(" ").map(n => n[0]).join("")}
+                          {user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -232,11 +270,11 @@ export default function UsersPage() {
                       </div>
                     </div>
                   </TableCell>
+                  <TableCell>{getStatusBadge(user.status)}</TableCell>
                   <TableCell>
-                    {getStatusBadge(user.status)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{user.plan}</Badge>
+                    <Badge variant="outline">
+                      {typeof user.plan === 'string' ? user.plan : user.plan?.name}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-gray-600">
                     {new Date(user.joinDate).toLocaleDateString()}
@@ -244,9 +282,7 @@ export default function UsersPage() {
                   <TableCell className="text-gray-600">
                     {new Date(user.lastLogin).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="font-medium">
-                    ${user.revenue}
-                  </TableCell>
+                  <TableCell className="font-medium">${user.revenue}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
                       <Button
@@ -259,7 +295,9 @@ export default function UsersPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setFormDialog({ open: true, mode: "edit", user })}
+                        onClick={() =>
+                          setFormDialog({ open: true, mode: "edit", user })
+                        }
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -283,21 +321,27 @@ export default function UsersPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Total Users
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{users.length}</div>
+            <div className="text-2xl font-bold text-gray-900">
+              {users.length}
+            </div>
             <p className="text-sm text-gray-500 mt-1">All registered users</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-gray-600">Active Users</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Active Users
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {users.filter(u => u.status === "active").length}
+              {users.filter((u) => u.status === "active").length}
             </div>
             <p className="text-sm text-gray-500 mt-1">Currently active</p>
           </CardContent>
@@ -305,11 +349,16 @@ export default function UsersPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Total Revenue
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              ${users.reduce((sum, user) => sum + user.revenue, 0).toLocaleString()}
+              $
+              {users
+                .reduce((sum, user) => sum + user.revenue, 0)
+                .toLocaleString()}
             </div>
             <p className="text-sm text-gray-500 mt-1">From all users</p>
           </CardContent>
@@ -320,7 +369,9 @@ export default function UsersPage() {
       <UserFormDialog
         open={formDialog.open}
         onOpenChange={(open) => setFormDialog({ ...formDialog, open })}
-        onSubmit={formDialog.mode === "create" ? handleCreateUser : handleUpdateUser}
+        onSubmit={
+          formDialog.mode === "create" ? handleCreateUser : handleUpdateUser
+        }
         user={formDialog.user}
         plans={plans}
         mode={formDialog.mode}
@@ -342,5 +393,5 @@ export default function UsersPage() {
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
-  )
+  );
 }

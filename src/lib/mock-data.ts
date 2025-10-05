@@ -5,7 +5,7 @@ export interface User {
   email: string
   avatar?: string
   status: "active" | "inactive" | "suspended"
-  plan: string
+  plan: string | { _id?: string; id?: string; name: string }
   joinDate: string
   lastLogin: string
   revenue: number

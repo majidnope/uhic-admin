@@ -1,0 +1,597 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ToastContainer } from "@/components/ui/toast";
+import { staffApi, type Staff } from "@/apis/staff.api";
+import {
+  Search,
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export default function AdminsPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [admins, setAdmins] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [formDialog, setFormDialog] = useState({
+    open: false,
+    mode: "create" as "create" | "edit",
+    admin: null as Staff | null,
+  });
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    admin: null as Staff | null,
+  });
+  const [viewDialog, setViewDialog] = useState({
+    open: false,
+    admin: null as Staff | null,
+  });
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "admin" as "super_admin" | "admin" | "moderator" | "customer_support" | "accountant",
+  });
+
+  const [toasts, setToasts] = useState<
+    Array<{ id: string; message: string; type: "success" | "error" | "info" }>
+  >([]);
+
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "info" = "info"
+  ) => {
+    const id = Math.random().toString(36).substring(7);
+    setToasts((prev) => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const adminsData = await staffApi.getAll();
+      setAdmins(adminsData);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load admins");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      role: "admin",
+    });
+  };
+
+  const handleOpenCreateDialog = () => {
+    resetForm();
+    setFormDialog({ open: true, mode: "create", admin: null });
+  };
+
+  const handleOpenEditDialog = (admin: Staff) => {
+    setFormData({
+      name: admin.name,
+      email: admin.email,
+      password: "",
+      role: admin.role as "super_admin" | "admin" | "moderator" | "customer_support" | "accountant",
+    });
+    setFormDialog({ open: true, mode: "edit", admin });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      if (formDialog.mode === "create") {
+        await staffApi.create(formData);
+        showToast("Admin created successfully", "success");
+      } else {
+        const adminId = formDialog.admin?._id;
+        if (!adminId) return;
+        const updateData: any = {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+        };
+        if (formData.password) {
+          updateData.password = formData.password;
+        }
+        await staffApi.update(adminId, updateData);
+        showToast("Admin updated successfully", "success");
+      }
+      await fetchData();
+      setFormDialog({ ...formDialog, open: false });
+    } catch (err) {
+      showToast(
+        `Failed to ${formDialog.mode === "create" ? "create" : "update"} admin`,
+        "error"
+      );
+    }
+  };
+
+  const handleDelete = async () => {
+    const adminId = deleteDialog.admin?._id;
+    if (!adminId) return;
+    try {
+      await staffApi.delete(adminId);
+      await fetchData();
+      showToast("Admin deleted successfully", "success");
+      setDeleteDialog({ open: false, admin: null });
+    } catch (err) {
+      showToast("Failed to delete admin", "error");
+    }
+  };
+
+  const filteredAdmins = admins.filter((admin) => {
+    const matchesSearch =
+      admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      admin.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === "all" || admin.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case "super_admin":
+        return (
+          <Badge variant="destructive" className="flex items-center gap-1">
+            <ShieldAlert className="h-3 w-3" />
+            Super Admin
+          </Badge>
+        );
+      case "admin":
+        return (
+          <Badge variant="default" className="flex items-center gap-1">
+            <ShieldCheck className="h-3 w-3" />
+            Admin
+          </Badge>
+        );
+      case "moderator":
+        return (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <Shield className="h-3 w-3" />
+            Moderator
+          </Badge>
+        );
+      case "customer_support":
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            Customer Support
+          </Badge>
+        );
+      case "accountant":
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            Accountant
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{role}</Badge>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">Loading...</div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64 text-red-600">
+        {error}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Administrators</h1>
+          <p className="text-gray-600 mt-1">
+            Manage admin users and their permissions.
+          </p>
+        </div>
+        <Button onClick={handleOpenCreateDialog}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Admin
+        </Button>
+      </div>
+
+      {/* Filters and Search */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search admins by name or email..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Role Filter */}
+            <div className="flex gap-2">
+              <Button
+                variant={roleFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setRoleFilter("all")}
+              >
+                All
+              </Button>
+              <Button
+                variant={roleFilter === "super_admin" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setRoleFilter("super_admin")}
+              >
+                Super Admin
+              </Button>
+              <Button
+                variant={roleFilter === "admin" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setRoleFilter("admin")}
+              >
+                Admin
+              </Button>
+              <Button
+                variant={roleFilter === "moderator" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setRoleFilter("moderator")}
+              >
+                Moderator
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Admins Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Administrators ({filteredAdmins.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Admin</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAdmins.map((admin) => (
+                <TableRow key={admin._id}>
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="text-xs">
+                          {admin.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {admin.name}
+                        </p>
+                        <p className="text-sm text-gray-500">{admin.email}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{getRoleBadge(admin.role)}</TableCell>
+                  <TableCell className="text-gray-600">
+                    {admin.createdAt
+                      ? new Date(admin.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setViewDialog({ open: true, admin })
+                        }
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenEditDialog(admin)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setDeleteDialog({ open: true, admin })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Admin Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Total Admins
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">
+              {admins.length}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">All administrators</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Super Admins
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {admins.filter((a) => a.role === "super_admin").length}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">Full access</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Moderators
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {admins.filter((a) => a.role === "moderator").length}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">Limited access</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={formDialog.open} onOpenChange={(open) => setFormDialog({ ...formDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {formDialog.mode === "create" ? "Create Admin" : "Edit Admin"}
+            </DialogTitle>
+            <DialogDescription>
+              {formDialog.mode === "create"
+                ? "Add a new administrator to the system."
+                : "Update administrator information."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="John Doe"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                placeholder="admin@example.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">
+                Password {formDialog.mode === "edit" && "(leave blank to keep current)"}
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                placeholder={formDialog.mode === "edit" ? "••••••••" : "Minimum 8 characters"}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value: "super_admin" | "admin" | "moderator" | "customer_support" | "accountant") =>
+                  setFormData({ ...formData, role: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="moderator">Moderator</SelectItem>
+                  <SelectItem value="customer_support">Customer Support</SelectItem>
+                  <SelectItem value="accountant">Accountant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setFormDialog({ ...formDialog, open: false })}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit}>
+              {formDialog.mode === "create" ? "Create" : "Update"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Admin</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {deleteDialog.admin?.name}? This
+              action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialog({ open: false, admin: null })}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={viewDialog.open} onOpenChange={(open) => setViewDialog({ ...viewDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Admin Details</DialogTitle>
+          </DialogHeader>
+          {viewDialog.admin && (
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback>
+                    {viewDialog.admin.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {viewDialog.admin.name}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {viewDialog.admin.email}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Role</Label>
+                <div>{getRoleBadge(viewDialog.admin.role)}</div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Created At</Label>
+                <p className="text-sm">
+                  {viewDialog.admin.createdAt
+                    ? new Date(viewDialog.admin.createdAt).toLocaleString()
+                    : "N/A"}
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <Label>Last Updated</Label>
+                <p className="text-sm">
+                  {viewDialog.admin.updatedAt
+                    ? new Date(viewDialog.admin.updatedAt).toLocaleString()
+                    : "N/A"}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              onClick={() => setViewDialog({ open: false, admin: null })}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+    </div>
+  );
+}

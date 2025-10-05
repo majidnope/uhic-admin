@@ -8,7 +8,8 @@ import {
   Settings,
   BarChart3,
   Menu,
-  X
+  X,
+  Shield
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -18,6 +19,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Users", href: "/dashboard/users", icon: Users },
   { name: "Plans", href: "/dashboard/plans", icon: CreditCard },
+  { name: "Admins", href: "/dashboard/admins", icon: Shield },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]

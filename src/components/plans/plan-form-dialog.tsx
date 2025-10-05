@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectOption } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Plan } from "@/lib/mock-data"
 import { X } from "lucide-react"
 
@@ -139,34 +139,36 @@ export function PlanFormDialog({
               <div>
                 <Label htmlFor="billing">Billing Cycle</Label>
                 <Select
-                  id="billing"
                   value={formData.billing}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      billing: e.target.value as "monthly" | "yearly",
-                    })
+                  onValueChange={(value: "monthly" | "yearly") =>
+                    setFormData({ ...formData, billing: value })
                   }
                 >
-                  <SelectOption value="monthly">Monthly</SelectOption>
-                  <SelectOption value="yearly">Yearly</SelectOption>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select billing cycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
               <div>
                 <Label htmlFor="status">Status</Label>
                 <Select
-                  id="status"
                   value={formData.status}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      status: e.target.value as "active" | "inactive",
-                    })
+                  onValueChange={(value: "active" | "inactive") =>
+                    setFormData({ ...formData, status: value })
                   }
                 >
-                  <SelectOption value="active">Active</SelectOption>
-                  <SelectOption value="inactive">Inactive</SelectOption>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
             </div>
