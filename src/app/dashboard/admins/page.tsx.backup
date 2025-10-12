@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ToastContainer } from "@/components/ui/toast";
-import { adminsApi, type Admin } from "@/apis/admins.api";
+import { staffApi, type Staff } from "@/apis/staff.api";
 import {
   Search,
   Plus,
@@ -46,29 +46,29 @@ import {
 export default function AdminsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [admins, setAdmins] = useState<Admin[]>([]);
+  const [admins, setAdmins] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [formDialog, setFormDialog] = useState({
     open: false,
     mode: "create" as "create" | "edit",
-    admin: null as Admin | null,
+    admin: null as Staff | null,
   });
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
-    admin: null as Admin | null,
+    admin: null as Staff | null,
   });
   const [viewDialog, setViewDialog] = useState({
     open: false,
-    admin: null as Admin | null,
+    admin: null as Staff | null,
   });
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    role: "admin" as "super_admin" | "admin" | "moderator",
+    role: "admin" as "super_admin" | "admin" | "moderator" | "customer_support" | "accountant",
   });
 
   const [toasts, setToasts] = useState<
@@ -94,7 +94,7 @@ export default function AdminsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const adminsData = await adminsApi.getAll();
+      const adminsData = await staffApi.getAll();
       setAdmins(adminsData);
       setError(null);
     } catch (err) {
@@ -119,12 +119,12 @@ export default function AdminsPage() {
     setFormDialog({ open: true, mode: "create", admin: null });
   };
 
-  const handleOpenEditDialog = (admin: Admin) => {
+  const handleOpenEditDialog = (admin: Staff) => {
     setFormData({
       name: admin.name,
       email: admin.email,
       password: "",
-      role: admin.role as "super_admin" | "admin" | "moderator",
+      role: admin.role as "super_admin" | "admin" | "moderator" | "customer_support" | "accountant",
     });
     setFormDialog({ open: true, mode: "edit", admin });
   };
@@ -132,7 +132,7 @@ export default function AdminsPage() {
   const handleSubmit = async () => {
     try {
       if (formDialog.mode === "create") {
-        await adminsApi.create(formData);
+        await staffApi.create(formData);
         showToast("Admin created successfully", "success");
       } else {
         const adminId = formDialog.admin?._id;
@@ -145,7 +145,7 @@ export default function AdminsPage() {
         if (formData.password) {
           updateData.password = formData.password;
         }
-        await adminsApi.update(adminId, updateData);
+        await staffApi.update(adminId, updateData);
         showToast("Admin updated successfully", "success");
       }
       await fetchData();
@@ -162,7 +162,7 @@ export default function AdminsPage() {
     const adminId = deleteDialog.admin?._id;
     if (!adminId) return;
     try {
-      await adminsApi.delete(adminId);
+      await staffApi.delete(adminId);
       await fetchData();
       showToast("Admin deleted successfully", "success");
       setDeleteDialog({ open: false, admin: null });
@@ -200,6 +200,18 @@ export default function AdminsPage() {
           <Badge variant="secondary" className="flex items-center gap-1">
             <Shield className="h-3 w-3" />
             Moderator
+          </Badge>
+        );
+      case "customer_support":
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            Customer Support
+          </Badge>
+        );
+      case "accountant":
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            Accountant
           </Badge>
         );
       default:
@@ -465,7 +477,7 @@ export default function AdminsPage() {
               <Label htmlFor="role">Role</Label>
               <Select
                 value={formData.role}
-                onValueChange={(value: "super_admin" | "admin" | "moderator") =>
+                onValueChange={(value: "super_admin" | "admin" | "moderator" | "customer_support" | "accountant") =>
                   setFormData({ ...formData, role: value })
                 }
               >
@@ -476,6 +488,8 @@ export default function AdminsPage() {
                   <SelectItem value="super_admin">Super Admin</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="moderator">Moderator</SelectItem>
+                  <SelectItem value="customer_support">Customer Support</SelectItem>
+                  <SelectItem value="accountant">Accountant</SelectItem>
                 </SelectContent>
               </Select>
             </div>

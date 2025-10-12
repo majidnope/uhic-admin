@@ -13,29 +13,29 @@ export interface Staff {
 
 export const staffApi = {
   getAll: async (): Promise<Staff[]> => {
-    return apiRequest<Staff[]>('/api/admin/staff');
+    return apiRequest<Staff[]>('/console/staff');
   },
 
   getById: async (id: string): Promise<Staff> => {
-    return apiRequest<Staff>(`/api/admin/staff/${id}`);
+    return apiRequest<Staff>(`/console/staff/${id}`);
   },
 
   create: async (staffData: Partial<Staff> & { password: string }): Promise<Staff> => {
-    return apiRequest<Staff>('/api/admin/staff', {
+    return apiRequest<Staff>('/console/staff', {
       method: 'POST',
       body: JSON.stringify(staffData),
     });
   },
 
   update: async (id: string, staffData: Partial<Staff>): Promise<Staff> => {
-    return apiRequest<Staff>(`/api/admin/staff/${id}`, {
+    return apiRequest<Staff>(`/console/staff/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(staffData),
     });
   },
 
   delete: async (id: string): Promise<void> => {
-    return apiRequest<void>(`/api/admin/staff/${id}`, {
+    return apiRequest<void>(`/console/staff/${id}`, {
       method: 'DELETE',
     });
   },
