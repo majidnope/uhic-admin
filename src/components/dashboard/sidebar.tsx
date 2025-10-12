@@ -9,24 +9,74 @@ import {
   BarChart3,
   Menu,
   X,
-  Shield
+  Shield,
+  LogOut,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
+import { useAuth } from "@/contexts/auth-context"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Users", href: "/dashboard/users", icon: Users },
-  { name: "Plans", href: "/dashboard/plans", icon: CreditCard },
-  { name: "Admins", href: "/dashboard/admins", icon: Shield },
-  { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    permission: "view_dashboard"
+  },
+  {
+    name: "Users",
+    href: "/dashboard/users",
+    icon: Users,
+    permission: "view_users"
+  },
+  {
+    name: "Plans",
+    href: "/dashboard/plans",
+    icon: CreditCard,
+    permission: "view_plans"
+  },
+  {
+    name: "Staff",
+    href: "/dashboard/admins",
+    icon: Shield,
+    adminOnly: true
+  },
+  {
+    name: "Analytics",
+    href: "/dashboard/analytics",
+    icon: BarChart3,
+    permission: "view_analytics"
+  },
+  {
+    name: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings
+  },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { user, isAdmin, hasPermission, logout } = useAuth()
+
+  // Filter navigation based on permissions
+  const visibleNavigation = navigation.filter(item => {
+    // Admin only items
+    if (item.adminOnly) {
+      return isAdmin
+    }
+
+    // Items with permission requirements
+    if (item.permission) {
+      return hasPermission(item.permission)
+    }
+
+    // Items without restrictions
+    return true
+  })
 
   return (
     <>
@@ -72,7 +122,7 @@ export function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2">
-            {navigation.map((item) => {
+            {visibleNavigation.map((item) => {
               const isActive = pathname === item.href
               return (
                 <Link
@@ -94,16 +144,34 @@ export function Sidebar() {
           </nav>
 
           {/* User profile section */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center">
-              <div className="bg-blue-600 p-2 rounded-full">
-                <span className="text-white font-medium text-sm">AD</span>
+          <div className="p-4 border-t border-gray-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="bg-blue-600 p-2 rounded-full">
+                  <span className="text-white font-medium text-sm">
+                    {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
+                  <p className="text-xs text-gray-500">{user?.email || ''}</p>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">Admin User</p>
-                <p className="text-xs text-gray-500">admin@finance.com</p>
-              </div>
+              {isAdmin ? (
+                <Badge variant="destructive" className="text-xs">Admin</Badge>
+              ) : (
+                <Badge variant="secondary" className="text-xs">Staff</Badge>
+              )}
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-gray-600 hover:text-gray-900"
+              onClick={logout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
       </div>
