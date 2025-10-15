@@ -21,21 +21,12 @@ export const authApi = {
   },
 
   getCurrentUser: async () => {
-    const token = localStorage.getItem('access_token');
-    return apiRequest('/console/auth/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    return apiRequest('/console/auth/me');
   },
 
   changePassword: async (currentPassword: string, newPassword: string) => {
-    const token = localStorage.getItem('access_token');
     return apiRequest('/console/auth/change-password', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify({ currentPassword, newPassword }),
     });
   },

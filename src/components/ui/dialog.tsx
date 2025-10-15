@@ -11,31 +11,62 @@ interface DialogProps {
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
   if (!open) return null
 
+  // Close on escape key
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onOpenChange(false)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onOpenChange])
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-black/50"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-50 w-full max-w-lg mx-4">
-        {children}
+      <div className="relative z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {React.Children.map(children, child => {
+          if (React.isValidElement(child)) {
+            return React.cloneElement(child as React.ReactElement<any>, { onClose: () => onOpenChange(false) })
+          }
+          return child
+        })}
       </div>
     </div>
   )
 }
 
-export function DialogContent({ children, className }: { children: React.ReactNode; className?: string }) {
+export function DialogContent({ children, className, onClose }: { children: React.ReactNode; className?: string; onClose?: () => void }) {
   return (
-    <div className={cn("bg-white rounded-lg shadow-lg", className)}>
-      {children}
+    <div className={cn("bg-white rounded-lg shadow-lg max-h-[90vh] overflow-y-auto", className)}>
+      {React.Children.map(children, child => {
+        if (React.isValidElement(child) && child.type === DialogHeader) {
+          return React.cloneElement(child as React.ReactElement<any>, { onClose })
+        }
+        return child
+      })}
     </div>
   )
 }
 
-export function DialogHeader({ children, className }: { children: React.ReactNode; className?: string }) {
+export function DialogHeader({ children, className, onClose }: { children: React.ReactNode; className?: string; onClose?: () => void }) {
   return (
-    <div className={cn("p-6 border-b border-gray-200", className)}>
+    <div className={cn("p-6 border-b border-gray-200 relative", className)}>
       {children}
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors rounded-sm hover:bg-gray-100 p-1"
+          aria-label="Close dialog"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      )}
     </div>
   )
 }
