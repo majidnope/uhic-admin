@@ -194,13 +194,12 @@ export default function StaffPage() {
 
     try {
       if (formDialog.mode === "create") {
-        // Staff backend accepts permissions field
+        // Staff backend accepts permissions field but NOT isActive during creation
         const createData = {
           name: formData.name,
           email: formData.email,
           password: formData.password,
           role: formData.role,
-          isActive: formData.isActive,
           permissions: formData.permissions,
         };
         await staffApi.create(createData);
