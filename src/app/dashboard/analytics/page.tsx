@@ -12,12 +12,29 @@ import {
   CreditCard,
   ArrowUp,
   ArrowDown,
+  AlertCircle,
 } from "lucide-react";
+
+// Helper function to format currency
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+// Helper function to format percentage
+const formatPercentage = (value: number): string => {
+  return `${value.toFixed(1)}%`;
+};
 
 export default function AnalyticsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -25,14 +42,17 @@ export default function AnalyticsPage() {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const [usersData, plansData] = await Promise.all([
         usersApi.getAll(),
         plansApi.getAll(),
       ]);
-      setUsers(usersData);
-      setPlans(plansData);
+      setUsers(usersData || []);
+      setPlans(plansData || []);
     } catch (err) {
       console.error("Failed to load analytics data", err);
+      setError("Failed to load analytics data. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -40,25 +60,54 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">Loading...</div>
+      <div className="space-y-6">
+        <div>
+          <div className="h-9 w-48 bg-gray-200 animate-pulse rounded" />
+          <div className="h-5 w-64 bg-gray-200 animate-pulse rounded mt-2" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <div className="h-24 bg-gray-100 animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <AlertCircle className="h-12 w-12 text-red-500" />
+        <p className="text-gray-600">{error}</p>
+        <button
+          onClick={fetchData}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
     );
   }
 
   const totalRevenue = plans
     .filter((p) => p.status === "active")
-    .reduce((sum, plan) => sum + plan.revenue, 0);
+    .reduce((sum, plan) => sum + (plan.revenue || 0), 0);
   const totalSubscribers = plans.reduce(
-    (sum, plan) => sum + plan.subscribers,
+    (sum, plan) => sum + (plan.subscribers || 0),
     0
   );
   const activeUsers = users.filter((u) => u.status === "active").length;
-  const totalUsers = users.length;
+  const totalUsers = users.length || 1; // Prevent division by zero
 
   // Calculate growth percentages (mock data)
   const metrics = [
     {
       title: "Total Revenue",
-      value: `$${totalRevenue.toLocaleString()}`,
+      value: formatCurrency(totalRevenue),
       change: 12.5,
       icon: DollarSign,
       color: "text-green-600",
@@ -66,7 +115,7 @@ export default function AnalyticsPage() {
     },
     {
       title: "Active Users",
-      value: activeUsers.toString(),
+      value: activeUsers.toLocaleString(),
       change: 8.3,
       icon: Users,
       color: "text-blue-600",
@@ -82,7 +131,7 @@ export default function AnalyticsPage() {
     },
     {
       title: "Active Plans",
-      value: plans.filter((p) => p.status === "active").length.toString(),
+      value: plans.filter((p) => p.status === "active").length.toLocaleString(),
       change: 0,
       icon: CreditCard,
       color: "text-orange-600",
@@ -92,7 +141,7 @@ export default function AnalyticsPage() {
 
   const revenueByPlan = plans
     .filter((p) => p.status === "active")
-    .sort((a, b) => b.revenue - a.revenue);
+    .sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
 
   return (
     <div className="space-y-6">
@@ -156,28 +205,34 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {revenueByPlan.map((plan) => {
-              const percentage = (plan.revenue / totalRevenue) * 100;
-              return (
-                <div key={plan._id || plan.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-900">
-                      {plan.name}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      ${plan.revenue.toLocaleString()} ({percentage.toFixed(1)}
-                      %)
-                    </span>
+            {revenueByPlan.length > 0 ? (
+              revenueByPlan.map((plan) => {
+                const revenue = plan.revenue || 0;
+                const percentage = totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0;
+                return (
+                  <div key={plan._id || plan.id} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-900">
+                        {plan.name || "Unnamed Plan"}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {formatCurrency(revenue)} ({formatPercentage(percentage)})
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <p className="text-center text-gray-500 py-4">
+                No active plans with revenue data available.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -196,8 +251,8 @@ export default function AnalyticsPage() {
                   <span className="text-gray-700">Active</span>
                 </div>
                 <span className="font-medium">
-                  {users.filter((u) => u.status === "active").length} (
-                  {((activeUsers / totalUsers) * 100).toFixed(1)}%)
+                  {users.filter((u) => u.status === "active").length.toLocaleString()} (
+                  {formatPercentage((activeUsers / totalUsers) * 100)})
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -206,13 +261,12 @@ export default function AnalyticsPage() {
                   <span className="text-gray-700">Inactive</span>
                 </div>
                 <span className="font-medium">
-                  {users.filter((u) => u.status === "inactive").length} (
-                  {(
+                  {users.filter((u) => u.status === "inactive").length.toLocaleString()} (
+                  {formatPercentage(
                     (users.filter((u) => u.status === "inactive").length /
                       totalUsers) *
                     100
-                  ).toFixed(1)}
-                  %)
+                  )})
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -221,13 +275,12 @@ export default function AnalyticsPage() {
                   <span className="text-gray-700">Suspended</span>
                 </div>
                 <span className="font-medium">
-                  {users.filter((u) => u.status === "suspended").length} (
-                  {(
+                  {users.filter((u) => u.status === "suspended").length.toLocaleString()} (
+                  {formatPercentage(
                     (users.filter((u) => u.status === "suspended").length /
                       totalUsers) *
                     100
-                  ).toFixed(1)}
-                  %)
+                  )})
                 </span>
               </div>
             </div>
@@ -240,25 +293,33 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {users
-                .sort((a, b) => b.revenue - a.revenue)
-                .slice(0, 5)
-                .map((user, index) => (
-                  <div
-                    key={user._id || user.id}
-                    className="flex justify-between items-center"
-                  >
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium text-gray-500 w-6">
-                        #{index + 1}
+              {users.length > 0 ? (
+                users
+                  .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+                  .slice(0, 5)
+                  .map((user, index) => (
+                    <div
+                      key={user._id || user.id}
+                      className="flex justify-between items-center"
+                    >
+                      <div className="flex items-center">
+                        <span className="text-sm font-medium text-gray-500 w-6">
+                          #{index + 1}
+                        </span>
+                        <span className="ml-2 text-gray-900">
+                          {user.name || "Unknown User"}
+                        </span>
+                      </div>
+                      <span className="font-medium text-green-600">
+                        {formatCurrency(user.revenue || 0)}
                       </span>
-                      <span className="ml-2 text-gray-900">{user.name}</span>
                     </div>
-                    <span className="font-medium text-green-600">
-                      ${user.revenue}
-                    </span>
-                  </div>
-                ))}
+                  ))
+              ) : (
+                <p className="text-center text-gray-500 py-4">
+                  No user data available.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

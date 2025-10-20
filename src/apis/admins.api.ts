@@ -5,6 +5,7 @@ export interface Admin {
   email: string;
   name: string;
   role: 'super_admin' | 'admin' | 'moderator';
+  permissions?: string[];
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;

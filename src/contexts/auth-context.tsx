@@ -18,7 +18,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   hasPermission: (permission: string) => boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, userType: 'admin' | 'staff') => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -48,8 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const data = await authApi.login(email, password);
+  const login = async (email: string, password: string, userType: 'admin' | 'staff') => {
+    const data = await authApi.login(email, password, userType);
 
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('user', JSON.stringify(data.user));
@@ -65,14 +65,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const hasPermission = (permission: string): boolean => {
-    // Admins always have all permissions
-    if (user?.userType === 'admin') return true;
+    if (!user) return false;
 
-    // Staff need the specific permission
+    // Super admins always have all permissions
+    if (user.role === 'super_admin') return true;
+
+    // Regular admins and staff need the specific permission
     return user?.permissions?.includes(permission) || false;
   };
 
-  const isAdmin = user?.userType === 'admin';
+  const isAdmin = user?.userType === 'admin' && user?.role === 'super_admin';
 
   return (
     <AuthContext.Provider

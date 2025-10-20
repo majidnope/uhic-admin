@@ -25,7 +25,12 @@ import {
   Shield,
   ShieldAlert,
   ShieldCheck,
+  Mail,
+  Lock,
+  User,
+  EyeOff,
 } from "lucide-react";
+import { PermissionSelector } from "@/components/permission-selector";
 import {
   Dialog,
   DialogContent,
@@ -69,7 +74,10 @@ export default function AdminsPage() {
     email: "",
     password: "",
     role: "admin" as "super_admin" | "admin" | "moderator",
+    permissions: [] as string[],
   });
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const [toasts, setToasts] = useState<
     Array<{ id: string; message: string; type: "success" | "error" | "info" }>
@@ -111,6 +119,7 @@ export default function AdminsPage() {
       email: "",
       password: "",
       role: "admin",
+      permissions: [],
     });
   };
 
@@ -125,6 +134,7 @@ export default function AdminsPage() {
       email: admin.email,
       password: "",
       role: admin.role as "super_admin" | "admin" | "moderator",
+      permissions: (admin as any).permissions || [],
     });
     setFormDialog({ open: true, mode: "edit", admin });
   };
@@ -132,7 +142,15 @@ export default function AdminsPage() {
   const handleSubmit = async () => {
     try {
       if (formDialog.mode === "create") {
-        await adminsApi.create(formData);
+        // Backend now accepts permissions field
+        const createData = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+          permissions: formData.permissions,
+        };
+        await adminsApi.create(createData);
         showToast("Admin created successfully", "success");
       } else {
         const adminId = formDialog.admin?._id;
@@ -141,6 +159,7 @@ export default function AdminsPage() {
           name: formData.name,
           email: formData.email,
           role: formData.role,
+          permissions: formData.permissions,
         };
         if (formData.password) {
           updateData.password = formData.password;
@@ -412,85 +431,204 @@ export default function AdminsPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={formDialog.open} onOpenChange={(open) => setFormDialog({ ...formDialog, open })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {formDialog.mode === "create" ? "Create Admin" : "Edit Admin"}
-            </DialogTitle>
-            <DialogDescription>
-              {formDialog.mode === "create"
-                ? "Add a new administrator to the system."
-                : "Update administrator information."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                placeholder="John Doe"
-              />
+        <DialogContent className="max-w-[600px] max-h-[85vh] p-0 gap-0">
+          <div className="overflow-y-auto max-h-[85vh]">
+            <DialogHeader className="px-6 pt-6 pb-4 sticky top-0 bg-white z-10 border-b">
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                {formDialog.mode === "create" ? "Create New Admin" : "Edit Administrator"}
+              </DialogTitle>
+              <DialogDescription className="text-gray-600 text-base">
+                {formDialog.mode === "create"
+                  ? "Add a new administrator to the system with specific role and permissions."
+                  : "Update administrator information and permissions."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="px-6 py-6 space-y-6">
+              {/* Name Field */}
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-semibold text-gray-900">
+                  Full Name <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="John Doe"
+                    className="pl-11 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold text-gray-900">
+                  Email Address <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    placeholder="admin@example.com"
+                    className="pl-11 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-semibold text-gray-900">
+                  Password
+                  {formDialog.mode === "create" && <span className="text-red-500">*</span>}
+                  {formDialog.mode === "edit" && (
+                    <span className="text-xs text-gray-500 font-normal ml-2">
+                      (leave blank to keep current)
+                    </span>
+                  )}
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    placeholder={formDialog.mode === "edit" ? "••••••••" : "Minimum 8 characters"}
+                    className="pl-11 pr-12 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    required={formDialog.mode === "create"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+                {formDialog.mode === "create" && (
+                  <p className="text-xs text-gray-500">
+                    Must be at least 8 characters long
+                  </p>
+                )}
+              </div>
+
+              {/* Role Field */}
+              <div className="space-y-2">
+                <Label htmlFor="role" className="text-sm font-semibold text-gray-900 block">
+                  Role & Permissions <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value: "super_admin" | "admin" | "moderator") =>
+                    setFormData({ ...formData, role: value })
+                  }
+                >
+                  <SelectTrigger className="h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500 w-full [&>span]:line-clamp-1">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="super_admin">
+                      <div className="flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4 text-red-600" />
+                        <span>Super Admin</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="admin">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-blue-600" />
+                        <span>Admin</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="moderator">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-gray-600" />
+                        <span>Moderator</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Permissions Selector - Only for non-super_admin */}
+              {formData.role !== "super_admin" && (
+                <div className="space-y-2 pt-4 border-t">
+                  <PermissionSelector
+                    selectedPermissions={formData.permissions}
+                    onChange={(permissions) =>
+                      setFormData({ ...formData, permissions })
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Super Admin Note */}
+              {formData.role === "super_admin" && (
+                <div className="pt-4 border-t">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <ShieldAlert className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-blue-900">
+                          Super Admin Access
+                        </p>
+                        <p className="text-xs text-blue-700 mt-1">
+                          Super Admins automatically have all permissions and full system access.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                placeholder="admin@example.com"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">
-                Password {formDialog.mode === "edit" && "(leave blank to keep current)"}
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                placeholder={formDialog.mode === "edit" ? "••••••••" : "Minimum 8 characters"}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="role">Role</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value: "super_admin" | "admin" | "moderator") =>
-                  setFormData({ ...formData, role: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
+            <DialogFooter className="px-6 py-4 border-t bg-gray-50 sticky bottom-0">
+              <div className="flex gap-3 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFormDialog({ ...formDialog, open: false });
+                    setShowPassword(false);
+                  }}
+                  className="h-12 flex-1 sm:flex-initial text-base font-medium"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  className="h-12 flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-base font-medium"
+                >
+                  {formDialog.mode === "create" ? (
+                    <>
+                      <Plus className="h-5 w-5 mr-2" />
+                      Create Admin
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="h-5 w-5 mr-2" />
+                      Update Admin
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogFooter>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setFormDialog({ ...formDialog, open: false })}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit}>
-              {formDialog.mode === "create" ? "Create" : "Update"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

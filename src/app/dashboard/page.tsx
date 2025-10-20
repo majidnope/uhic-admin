@@ -13,6 +13,7 @@ import { plansApi } from "@/apis/plans.api"
 import { usersApi } from "@/apis/users.api"
 import type { Plan, User } from "@/lib/mock-data"
 import { Plus, Eye } from "lucide-react"
+import { PermissionGate } from "@/components/permission-gate"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -111,33 +112,52 @@ export default function DashboardPage() {
   ]
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-gray-200 rounded w-1/3" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 bg-gray-200 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-96 bg-gray-200 rounded-xl" />
+          <div className="h-96 bg-gray-200 rounded-xl" />
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-gray-600 mt-2 text-sm">
             Welcome back! Here's what's happening with your finance platform today.
           </p>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            <Eye className="h-4 w-4 mr-2" />
-            View Reports
-          </Button>
-          <Button onClick={() => setUserFormDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
+        <div className="flex flex-wrap gap-3">
+          <PermissionGate permission="view_analytics">
+            <Button variant="outline" className="shadow-sm hover:shadow transition-shadow">
+              <Eye className="h-4 w-4 mr-2" />
+              View Reports
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="create_users">
+            <Button onClick={() => setUserFormDialog(true)} className="shadow-sm hover:shadow-md transition-shadow">
+              <Plus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {financialMetrics.map((metric, index) => (
           <MetricCard
             key={index}
@@ -151,7 +171,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         {/* Recent Activity */}
         <div className="lg:col-span-2">
           <RecentActivity />
@@ -160,9 +180,9 @@ export default function DashboardPage() {
         {/* Quick Stats */}
         <div className="space-y-6">
           {/* Plan Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Plan Overview</CardTitle>
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold">Plan Overview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {activePlans.map((plan) => (
@@ -187,31 +207,37 @@ export default function DashboardPage() {
           </Card>
 
           {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => setPlanFormDialog(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Plan
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push('/dashboard/users')}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                View All Users
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Eye className="h-4 w-4 mr-2" />
-                Generate Report
-              </Button>
+            <CardContent className="space-y-2">
+              <PermissionGate permission="create_plans">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start hover:bg-gray-50 transition-colors"
+                  onClick={() => setPlanFormDialog(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Plan
+                </Button>
+              </PermissionGate>
+              <PermissionGate permission="view_users">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start hover:bg-gray-50 transition-colors"
+                  onClick={() => router.push('/dashboard/users')}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  View All Users
+                </Button>
+              </PermissionGate>
+              <PermissionGate permission="view_analytics">
+                <Button variant="outline" className="w-full justify-start hover:bg-gray-50 transition-colors">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Generate Report
+                </Button>
+              </PermissionGate>
             </CardContent>
           </Card>
         </div>

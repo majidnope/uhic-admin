@@ -23,8 +23,10 @@ import {
 } from "lucide-react"
 
 export default function PlansPage() {
-  const [selectedTab, setSelectedTab] = useState<"all" | "active" | "inactive">("all")
+  const [selectedTab, setSelectedTab] = useState<"admin" | "user-created" | "rejected">("admin")
   const [plans, setPlans] = useState<Plan[]>([])
+  const [pendingPlans, setPendingPlans] = useState<Plan[]>([])
+  const [rejectedPlans, setRejectedPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,6 +46,8 @@ export default function PlansPage() {
 
   useEffect(() => {
     fetchPlans()
+    fetchPendingPlans()
+    fetchRejectedPlans()
   }, [])
 
   const fetchPlans = async () => {
@@ -57,6 +61,25 @@ export default function PlansPage() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPendingPlans = async () => {
+    try {
+      const data = await plansApi.getPending()
+      setPendingPlans(data)
+    } catch (err) {
+      console.error('Failed to load pending plans:', err)
+    }
+  }
+
+  const fetchRejectedPlans = async () => {
+    try {
+      const allPlans = await plansApi.getAll()
+      const rejected = allPlans.filter(p => (p as any).approvalStatus === 'rejected')
+      setRejectedPlans(rejected)
+    } catch (err) {
+      console.error('Failed to load rejected plans:', err)
     }
   }
 
@@ -97,10 +120,32 @@ export default function PlansPage() {
     }
   }
 
-  const filteredPlans = plans.filter(plan => {
-    if (selectedTab === "all") return true
-    return plan.status === selectedTab
-  })
+  const handleApprovePlan = async (planId: string) => {
+    try {
+      await plansApi.approve(planId)
+      await fetchPlans()
+      await fetchPendingPlans()
+      await fetchRejectedPlans()
+      showToast("Plan approved successfully", "success")
+    } catch (err) {
+      showToast("Failed to approve plan", "error")
+    }
+  }
+
+  const handleRejectPlan = async (planId: string, reason: string) => {
+    try {
+      await plansApi.reject(planId, reason)
+      await fetchPlans()
+      await fetchPendingPlans()
+      await fetchRejectedPlans()
+      showToast("Plan rejected successfully", "success")
+    } catch (err) {
+      showToast("Failed to reject plan", "error")
+    }
+  }
+
+  const adminPlans = plans.filter(plan => (plan as any).createdByType === 'admin')
+  const displayedPlans = selectedTab === "admin" ? adminPlans : selectedTab === "rejected" ? rejectedPlans : pendingPlans
 
   const getStatusBadge = (status: string) => {
     return status === "active" ? (
@@ -137,45 +182,66 @@ export default function PlansPage() {
       {/* Tab Navigation */}
       <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
         <Button
-          variant={selectedTab === "all" ? "default" : "ghost"}
+          variant={selectedTab === "admin" ? "default" : "ghost"}
           size="sm"
-          onClick={() => setSelectedTab("all")}
+          onClick={() => setSelectedTab("admin")}
           className="rounded-md"
         >
-          All Plans ({plans.length})
+          Admin Plans ({adminPlans.length})
         </Button>
         <Button
-          variant={selectedTab === "active" ? "default" : "ghost"}
+          variant={selectedTab === "user-created" ? "default" : "ghost"}
           size="sm"
-          onClick={() => setSelectedTab("active")}
+          onClick={() => setSelectedTab("user-created")}
           className="rounded-md"
         >
-          Active ({plans.filter(p => p.status === "active").length})
+          Pending Plans ({pendingPlans.length})
         </Button>
         <Button
-          variant={selectedTab === "inactive" ? "default" : "ghost"}
+          variant={selectedTab === "rejected" ? "default" : "ghost"}
           size="sm"
-          onClick={() => setSelectedTab("inactive")}
+          onClick={() => setSelectedTab("rejected")}
           className="rounded-md"
         >
-          Inactive ({plans.filter(p => p.status === "inactive").length})
+          Rejected Plans ({rejectedPlans.length})
         </Button>
       </div>
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPlans.map((plan) => (
+        {displayedPlans.map((plan) => (
           <Card key={plan._id || plan.id} className="relative">
             <CardHeader className="pb-4">
               <div className="flex justify-between items-start">
-                <div>
+                <div className="flex-1">
                   <CardTitle className="text-xl">{plan.name}</CardTitle>
                   <div className="flex items-center space-x-2 mt-2">
                     {getStatusBadge(plan.status)}
                     <Badge variant="outline" className="capitalize">
-                      {plan.billing}
+                      {(plan as any).riskLevel || 'N/A'}
                     </Badge>
                   </div>
+                  {/* User Info for User-Created Plans */}
+                  {(selectedTab === "user-created" || selectedTab === "rejected") && (plan as any).createdBy && (
+                    <div className="mt-3 p-2 bg-blue-50 rounded-md">
+                      <p className="text-xs text-gray-500">Created by:</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {(plan as any).createdBy?.name || 'Unknown User'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(plan as any).createdBy?.email || 'No email'}
+                      </p>
+                    </div>
+                  )}
+                  {/* Rejection Reason for Rejected Plans */}
+                  {selectedTab === "rejected" && (plan as any).rejectionReason && (
+                    <div className="mt-3 p-2 bg-red-50 rounded-md border border-red-200">
+                      <p className="text-xs text-red-600 font-medium">Rejection Reason:</p>
+                      <p className="text-sm text-red-700 mt-1">
+                        {(plan as any).rejectionReason}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -220,36 +286,83 @@ export default function PlansPage() {
               {/* Stats */}
               <div className="flex justify-between items-center pt-4 border-t border-gray-200">
                 <div className="flex items-center space-x-1">
-                  <Users className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-medium">{plan.subscribers}</span>
-                  <span className="text-sm text-gray-500">subscribers</span>
+                  <span className="text-sm font-medium">{(plan as any).expectedReturn || 'N/A'}</span>
+                  <span className="text-sm text-gray-500">expected return</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <DollarSign className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-medium">${plan.revenue.toLocaleString()}</span>
+                  <span className="text-sm font-medium">{(plan as any).duration || 'N/A'}</span>
                 </div>
               </div>
 
               {/* Actions */}
               <div className="flex space-x-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setFormDialog({ open: true, mode: "edit", plan })}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setViewDialog({ open: true, plan })}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  View
-                </Button>
+                {selectedTab === "admin" ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setFormDialog({ open: true, mode: "edit", plan })}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setViewDialog({ open: true, plan })}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
+                  </>
+                ) : selectedTab === "rejected" ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setViewDialog({ open: true, plan })}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                      onClick={() => setDeleteDialog({ open: true, plan })}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-green-600 border-green-600 hover:bg-green-50"
+                      onClick={() => handleApprovePlan((plan._id || plan.id) as string)}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                      onClick={() => {
+                        const reason = prompt("Enter rejection reason:");
+                        if (reason) handleRejectPlan((plan._id || plan.id) as string, reason);
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -280,25 +393,24 @@ export default function PlansPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Subscribers</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Avg Expected Return</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {plans.reduce((sum, plan) => sum + plan.subscribers, 0).toLocaleString()}
+              {plans.length > 0 ? (plans[0] as any).expectedReturn || 'N/A' : 'N/A'}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Monthly Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Risk Levels</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              ${plans
-                .filter(p => p.status === "active")
-                .reduce((sum, plan) => sum + plan.revenue, 0)
-                .toLocaleString()}
+            <div className="text-sm text-gray-600">
+              Low: {plans.filter(p => (p as any).riskLevel === "Low").length} |
+              Med: {plans.filter(p => (p as any).riskLevel === "Medium").length} |
+              High: {plans.filter(p => (p as any).riskLevel === "High").length}
             </div>
           </CardContent>
         </Card>
@@ -327,23 +439,31 @@ export default function PlansPage() {
                   <td className="py-3 px-4 font-medium text-gray-900">Price</td>
                   {plans.filter(p => p.status === "active").map(plan => (
                     <td key={plan._id || plan.id} className="text-center py-3 px-4">
-                      ${plan.price}/month
+                      ${plan.price}
                     </td>
                   ))}
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-3 px-4 font-medium text-gray-900">Subscribers</td>
+                  <td className="py-3 px-4 font-medium text-gray-900">Expected Return</td>
                   {plans.filter(p => p.status === "active").map(plan => (
                     <td key={plan._id || plan.id} className="text-center py-3 px-4">
-                      {plan.subscribers.toLocaleString()}
+                      {(plan as any).expectedReturn || 'N/A'}
                     </td>
                   ))}
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-3 px-4 font-medium text-gray-900">Monthly Revenue</td>
+                  <td className="py-3 px-4 font-medium text-gray-900">Duration</td>
                   {plans.filter(p => p.status === "active").map(plan => (
-                    <td key={plan._id || plan.id} className="text-center py-3 px-4 text-green-600 font-medium">
-                      ${plan.revenue.toLocaleString()}
+                    <td key={plan._id || plan.id} className="text-center py-3 px-4">
+                      {(plan as any).duration || 'N/A'}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 px-4 font-medium text-gray-900">Risk Level</td>
+                  {plans.filter(p => p.status === "active").map(plan => (
+                    <td key={plan._id || plan.id} className="text-center py-3 px-4 font-medium">
+                      {(plan as any).riskLevel || 'N/A'}
                     </td>
                   ))}
                 </tr>

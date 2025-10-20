@@ -29,4 +29,21 @@ export const usersApi = {
       method: 'DELETE',
     });
   },
+
+  getPendingUsers: async (): Promise<User[]> => {
+    return apiRequest<User[]>('/console/users/pending/list');
+  },
+
+  approve: async (id: string): Promise<User> => {
+    return apiRequest<User>(`/console/users/${id}/approve`, {
+      method: 'POST',
+    });
+  },
+
+  reject: async (id: string, reason: string): Promise<User> => {
+    return apiRequest<User>(`/console/users/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
 };

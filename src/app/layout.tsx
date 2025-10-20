@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FinanceAdmin - Dashboard",
+  title: "UHIC - Dashboard",
   description: "Admin dashboard for finance application with user and subscription management",
 };
 

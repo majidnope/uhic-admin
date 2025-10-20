@@ -5,6 +5,10 @@ export interface User {
   email: string
   avatar?: string
   status: "active" | "inactive" | "suspended"
+  approvalStatus?: "pending" | "approved" | "rejected"
+  approvedBy?: string
+  approvedAt?: string
+  rejectionReason?: string
   plan: string | { _id?: string; id?: string; name: string }
   joinDate: string
   lastLogin: string

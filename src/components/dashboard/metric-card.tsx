@@ -28,32 +28,40 @@ export function MetricCard({ label, value, change, changeType, icon }: MetricCar
   const Icon = iconMap[icon as keyof typeof iconMap] || DollarSign
 
   return (
-    <Card>
+    <Card className="shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-600">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-gray-600">
           {label}
         </CardTitle>
-        <Icon className="h-4 w-4 text-gray-400" />
+        <div className="bg-blue-50 p-2 rounded-lg">
+          <Icon className="h-5 w-5 text-blue-600" />
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-gray-900">{value}</div>
-        <div className="flex items-center space-x-2 mt-2">
+        <div className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+          {value}
+        </div>
+        <div className="flex items-center gap-2 mt-3">
           {change !== 0 && (
             <>
               {changeType === "positive" ? (
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-md">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span className="text-xs font-semibold">
+                    +{change}%
+                  </span>
+                </div>
               ) : changeType === "negative" ? (
-                <TrendingDown className="h-4 w-4 text-red-500" />
+                <div className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-md">
+                  <TrendingDown className="h-3.5 w-3.5" />
+                  <span className="text-xs font-semibold">
+                    {change}%
+                  </span>
+                </div>
               ) : null}
-              <Badge
-                variant={changeType === "positive" ? "success" : changeType === "negative" ? "destructive" : "secondary"}
-                className="text-xs"
-              >
-                {change > 0 ? "+" : ""}{change}%
-              </Badge>
+              <span className="text-xs text-gray-500">vs last month</span>
             </>
           )}
-          <span className="text-xs text-gray-500">from last month</span>
         </div>
       </CardContent>
     </Card>

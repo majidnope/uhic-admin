@@ -13,8 +13,12 @@ export interface LoginResponse {
 }
 
 export const authApi = {
-  login: async (email: string, password: string): Promise<LoginResponse> => {
-    return apiRequest<LoginResponse>('/console/auth/login', {
+  login: async (email: string, password: string, userType: 'admin' | 'staff'): Promise<LoginResponse> => {
+    const endpoint = userType === 'admin'
+      ? '/console/auth/admin/login'
+      : '/console/auth/staff/login';
+
+    return apiRequest<LoginResponse>(endpoint, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });

@@ -33,12 +33,13 @@ export function PlanFormDialog({
   const [formData, setFormData] = useState({
     name: "",
     price: 0,
-    billing: "monthly" as "monthly" | "yearly",
+    expectedReturn: "",
+    duration: "",
+    riskLevel: "Medium" as "Low" | "Medium" | "High",
+    color: "",
     features: [] as string[],
     status: "active" as "active" | "inactive",
     description: "",
-    subscribers: 0,
-    revenue: 0,
   })
   const [featureInput, setFeatureInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -48,23 +49,25 @@ export function PlanFormDialog({
       setFormData({
         name: plan.name,
         price: plan.price,
-        billing: plan.billing as "monthly" | "yearly",
+        expectedReturn: (plan as any).expectedReturn || "",
+        duration: (plan as any).duration || "",
+        riskLevel: ((plan as any).riskLevel || "Medium") as "Low" | "Medium" | "High",
+        color: (plan as any).color || "",
         features: plan.features,
         status: plan.status as "active" | "inactive",
         description: plan.description,
-        subscribers: plan.subscribers,
-        revenue: plan.revenue,
       })
     } else {
       setFormData({
         name: "",
         price: 0,
-        billing: "monthly",
+        expectedReturn: "",
+        duration: "",
+        riskLevel: "Medium",
+        color: "",
         features: [],
         status: "active",
         description: "",
-        subscribers: 0,
-        revenue: 0,
       })
     }
   }, [plan, mode, open])
@@ -87,7 +90,9 @@ export function PlanFormDialog({
     e.preventDefault()
     setLoading(true)
     try {
-      await onSubmit(formData)
+      // Remove any fields that shouldn't be sent to the backend
+      const { ...submitData } = formData
+      await onSubmit(submitData)
       onOpenChange(false)
     } catch (error) {
       console.error("Failed to submit form:", error)
@@ -135,42 +140,22 @@ export function PlanFormDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="billing">Billing Cycle</Label>
-                <Select
-                  value={formData.billing}
-                  onValueChange={(value: "monthly" | "yearly") =>
-                    setFormData({ ...formData, billing: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select billing cycle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="yearly">Yearly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: "active" | "inactive") =>
-                    setFormData({ ...formData, status: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value: "active" | "inactive") =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -181,6 +166,62 @@ export function PlanFormDialog({
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="expectedReturn">Expected Return</Label>
+                <Input
+                  id="expectedReturn"
+                  placeholder="e.g., 5-8%"
+                  value={formData.expectedReturn}
+                  onChange={(e) => setFormData({ ...formData, expectedReturn: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="duration">Duration</Label>
+                <Input
+                  id="duration"
+                  placeholder="e.g., 12 months"
+                  value={formData.duration}
+                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="riskLevel">Risk Level</Label>
+                <Select
+                  value={formData.riskLevel}
+                  onValueChange={(value: "Low" | "Medium" | "High") =>
+                    setFormData({ ...formData, riskLevel: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select risk level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="color">Color</Label>
+                <Input
+                  id="color"
+                  placeholder="e.g., blue, green, purple"
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  required
+                />
+              </div>
             </div>
 
             <div>
@@ -214,34 +255,6 @@ export function PlanFormDialog({
                     </Button>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="subscribers">Subscribers</Label>
-                <Input
-                  id="subscribers"
-                  type="number"
-                  value={formData.subscribers}
-                  onChange={(e) =>
-                    setFormData({ ...formData, subscribers: parseInt(e.target.value) || 0 })
-                  }
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="revenue">Revenue ($)</Label>
-                <Input
-                  id="revenue"
-                  type="number"
-                  value={formData.revenue}
-                  onChange={(e) =>
-                    setFormData({ ...formData, revenue: parseFloat(e.target.value) || 0 })
-                  }
-                  required
-                />
               </div>
             </div>
           </div>
