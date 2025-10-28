@@ -19,6 +19,7 @@ import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
 const navigation = [
   {
@@ -118,11 +119,11 @@ export function Sidebar() {
           {/* Logo */}
           <div className="flex items-center h-16 px-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
             <div className="flex items-center">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-2 rounded-xl shadow-sm">
-                <BarChart3 className="h-6 w-6 text-white" />
+              <div className="p-2 rounded-xl shadow-sm">
+                <Image src="/logo.png" alt="UHIC Logo" width={40} height={40} className="object-contain" />
               </div>
               <span className="ml-3 text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                UHIC
+                Dashboard
               </span>
             </div>
           </div>

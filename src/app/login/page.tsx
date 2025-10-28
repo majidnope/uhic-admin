@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, Shield, Users, Lock, Mail, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,8 +48,8 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-4 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
-              <BarChart3 className="h-10 w-10 text-white" />
+            <div className="p-4 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+              <Image src="/logo.png" alt="UHIC Logo" width={80} height={80} className="object-contain" />
             </div>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">

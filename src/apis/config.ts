@@ -1,9 +1,21 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const nameEQ = name + '=';
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
 function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("access_token");
+  return getCookie("access_token");
 }
 
 export async function apiRequest<T>(
@@ -34,7 +46,8 @@ export async function apiRequest<T>(
     if (response.status === 401) {
       // Token expired or invalid, redirect to login
       if (typeof window !== "undefined") {
-        localStorage.removeItem("auth_token");
+        document.cookie = "access_token=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
+        document.cookie = "user=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
         //window.location.href = '/login';
       }
     }

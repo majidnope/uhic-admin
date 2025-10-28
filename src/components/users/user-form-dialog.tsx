@@ -145,7 +145,7 @@ export function UserFormDialog({
                 <SelectContent>
                   {plans.map((plan) => (
                     <SelectItem key={plan._id || plan.id} value={plan._id || plan.id || ''}>
-                      {plan.name} - ${plan.price}/month
+                      {plan.name} - ${plan.price}
                     </SelectItem>
                   ))}
                 </SelectContent>

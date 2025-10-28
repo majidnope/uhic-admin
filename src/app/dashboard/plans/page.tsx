@@ -259,7 +259,7 @@ export default function PlansPage() {
                 <div className="text-3xl font-bold text-gray-900">
                   ${plan.price}
                 </div>
-                <div className="text-sm text-gray-500">per month</div>
+                <div className="text-sm text-gray-500">Investment Amount</div>
               </div>
 
               {/* Description */}

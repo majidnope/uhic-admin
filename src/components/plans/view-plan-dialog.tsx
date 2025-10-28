@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Plan } from "@/lib/mock-data"
-import { DollarSign, Users, Calendar, Check } from "lucide-react"
+import { DollarSign, Users, Check } from "lucide-react"
 
 interface ViewPlanDialogProps {
   open: boolean
@@ -50,7 +50,7 @@ export function ViewPlanDialog({ open, onOpenChange, plan }: ViewPlanDialogProps
               <DollarSign className="h-8 w-8 text-blue-600" />
               <div className="text-5xl font-bold text-blue-600">${plan.price}</div>
             </div>
-            <p className="text-gray-600 mt-2 capitalize">per {plan.billing}</p>
+            <p className="text-gray-600 mt-2">Investment Amount</p>
           </div>
 
           {/* Stats Grid */}
@@ -85,15 +85,6 @@ export function ViewPlanDialog({ open, onOpenChange, plan }: ViewPlanDialogProps
             </div>
           </div>
 
-          {/* Billing Info */}
-          <div className="border-t pt-4">
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="h-4 w-4" />
-              <span className="text-sm">
-                Billing Cycle: <span className="font-semibold text-gray-900 capitalize">{plan.billing}</span>
-              </span>
-            </div>
-          </div>
         </div>
 
         <DialogFooter>

@@ -20,7 +20,6 @@ export interface Plan {
   id?: string
   name: string
   price: number
-  billing: "monthly" | "yearly"
   features: string[]
   subscribers: number
   revenue: number
@@ -94,7 +93,6 @@ export const mockPlans: Plan[] = [
     id: "1",
     name: "Basic",
     price: 99,
-    billing: "monthly",
     features: [
       "Up to 10 transactions",
       "Basic reporting",
@@ -110,7 +108,6 @@ export const mockPlans: Plan[] = [
     id: "2",
     name: "Pro",
     price: 299,
-    billing: "monthly",
     features: [
       "Unlimited transactions",
       "Advanced reporting",
@@ -127,7 +124,6 @@ export const mockPlans: Plan[] = [
     id: "3",
     name: "Enterprise",
     price: 999,
-    billing: "monthly",
     features: [
       "Everything in Pro",
       "Dedicated account manager",
@@ -145,7 +141,6 @@ export const mockPlans: Plan[] = [
     id: "4",
     name: "Starter",
     price: 49,
-    billing: "monthly",
     features: [
       "Up to 5 transactions",
       "Basic dashboard",

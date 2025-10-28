@@ -25,6 +25,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper functions for cookie management
+function setCookie(name: string, value: string, days = 7) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const nameEQ = name + '=';
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,16 +55,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check if user is logged in on mount
-    const token = localStorage.getItem('access_token');
-    const storedUser = localStorage.getItem('user');
+    const token = getCookie('access_token');
+    const storedUser = getCookie('user');
 
     if (token && storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        setUser(JSON.parse(decodeURIComponent(storedUser)));
       } catch (error) {
         console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
+        deleteCookie('access_token');
+        deleteCookie('user');
       }
     }
 
@@ -51,15 +74,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, userType: 'admin' | 'staff') => {
     const data = await authApi.login(email, password, userType);
 
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    setCookie('access_token', data.access_token);
+    setCookie('user', encodeURIComponent(JSON.stringify(data.user)));
 
     setUser(data.user);
   };
 
   const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
+    deleteCookie('access_token');
+    deleteCookie('user');
     setUser(null);
     router.push('/login');
   };
