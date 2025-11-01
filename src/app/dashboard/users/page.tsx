@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -29,11 +30,14 @@ import {
   Eye,
   Edit,
   Trash2,
+  Check,
+  X,
 } from "lucide-react";
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [approvalFilter, setApprovalFilter] = useState<string>("all");
   const [users, setUsers] = useState<User[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,11 +94,24 @@ export default function UsersPage() {
     }
   };
 
-  const handleCreateUser = async (userData: Partial<User>) => {
+  const handleCreateUser = async (userData: Partial<User>, sendResetEmail?: boolean) => {
     try {
       await usersApi.create(userData);
+
+      // Send password reset email if checkbox was checked
+      if (sendResetEmail && userData.email) {
+        try {
+          await usersApi.sendPasswordResetEmail(userData.email);
+          showToast("User created successfully and password reset email sent", "success");
+        } catch (emailErr) {
+          console.error("Failed to send reset email:", emailErr);
+          showToast("User created but failed to send password reset email", "info");
+        }
+      } else {
+        showToast("User created successfully", "success");
+      }
+
       await fetchData();
-      showToast("User created successfully", "success");
     } catch (err) {
       showToast("Failed to create user", "error");
       throw err;
@@ -127,13 +144,43 @@ export default function UsersPage() {
     }
   };
 
+  const handleApproveUser = async (user: User) => {
+    const userId = user._id || user.id;
+    if (!userId) return;
+    try {
+      await usersApi.approve(userId);
+      await fetchData();
+      showToast("User approved successfully", "success");
+    } catch (err) {
+      showToast("Failed to approve user", "error");
+      console.error(err);
+    }
+  };
+
+  const handleRejectUser = async (user: User) => {
+    const userId = user._id || user.id;
+    if (!userId) return;
+    const reason = prompt("Please enter rejection reason:");
+    if (!reason) return;
+    try {
+      await usersApi.reject(userId, reason);
+      await fetchData();
+      showToast("User rejected successfully", "success");
+    } catch (err) {
+      showToast("Failed to reject user", "error");
+      console.error(err);
+    }
+  };
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || user.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesApproval =
+      approvalFilter === "all" || user.approvalStatus === approvalFilter;
+    return matchesSearch && matchesStatus && matchesApproval;
   });
 
   const getStatusBadge = (status: string) => {
@@ -146,6 +193,19 @@ export default function UsersPage() {
         return <Badge variant="destructive">Suspended</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getApprovalBadge = (approvalStatus?: string) => {
+    switch (approvalStatus) {
+      case "approved":
+        return <Badge className="bg-green-100 text-green-700">Approved</Badge>;
+      case "pending":
+        return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
+      case "rejected":
+        return <Badge className="bg-red-100 text-red-700">Rejected</Badge>;
+      default:
+        return <Badge variant="secondary">Unknown</Badge>;
     }
   };
 
@@ -182,6 +242,36 @@ export default function UsersPage() {
           Add User
         </Button>
       </div>
+
+      {/* Approval Status Tabs */}
+      <Tabs value={approvalFilter} onValueChange={setApprovalFilter} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+          <TabsTrigger value="all" className="flex items-center gap-2">
+            <span>All Users</span>
+            <Badge variant="secondary" className="text-xs">
+              {users.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="approved" className="flex items-center gap-2">
+            <span>Approved</span>
+            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
+              {users.filter(u => u.approvalStatus === "approved").length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="pending" className="flex items-center gap-2">
+            <span>Pending</span>
+            <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-200">
+              {users.filter(u => u.approvalStatus === "pending").length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="rejected" className="flex items-center gap-2">
+            <span>Rejected</span>
+            <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 border-red-200">
+              {users.filter(u => u.approvalStatus === "rejected").length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Filters and Search */}
       <Card>
@@ -244,6 +334,7 @@ export default function UsersPage() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Approval</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead>Join Date</TableHead>
                 <TableHead>Last Login</TableHead>
@@ -271,10 +362,19 @@ export default function UsersPage() {
                     </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(user.status)}</TableCell>
+                  <TableCell>{getApprovalBadge(user.approvalStatus)}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">
-                      {typeof user.plan === 'string' ? user.plan : user.plan?.name}
-                    </Badge>
+                    {Array.isArray(user.plan) && user.plan.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {user.plan.map((p, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {typeof p === 'string' ? p : p?.name || 'Unknown'}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="text-gray-400">No plan</Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-gray-600">
                     {new Date(user.joinDate).toLocaleDateString()}
@@ -285,6 +385,26 @@ export default function UsersPage() {
                   <TableCell className="font-medium">${user.revenue}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
+                      {user.approvalStatus === "pending" && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleApproveUser(user)}
+                            title="Approve User"
+                          >
+                            <Check className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRejectUser(user)}
+                            title="Reject User"
+                          >
+                            <X className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

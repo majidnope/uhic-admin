@@ -11,12 +11,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import type { User, Plan } from "@/lib/mock-data"
 
 interface UserFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (userData: Partial<User>) => Promise<void>
+  onSubmit: (userData: Partial<User>, sendResetEmail?: boolean) => Promise<void>
   user?: User | null
   plans: Plan[]
   mode: "create" | "edit"
@@ -34,35 +35,46 @@ export function UserFormDialog({
     name: string;
     email: string;
     status: "active" | "inactive" | "suspended";
-    plan: string;
+    plan: string[];
     revenue: number;
   }>({
     name: "",
     email: "",
     status: "active",
-    plan: "",
+    plan: [],
     revenue: 0,
   })
+  const [sendResetEmail, setSendResetEmail] = useState(true)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (user && mode === "edit") {
-      const planId = typeof user.plan === 'string' ? user.plan : (user.plan?._id || user.plan?.id || "")
+      // Handle plan as array or single value
+      let planIds: string[] = [];
+      if (Array.isArray(user.plan)) {
+        planIds = user.plan.map(p => typeof p === 'string' ? p : (p?._id || p?.id || "")).filter(Boolean);
+      } else if (user.plan) {
+        const planId = typeof user.plan === 'string' ? user.plan : (user.plan?._id || user.plan?.id || "");
+        if (planId) planIds = [planId];
+      }
+
       setFormData({
         name: user.name,
         email: user.email,
         status: user.status as "active" | "inactive" | "suspended",
-        plan: planId,
+        plan: planIds,
         revenue: user.revenue,
       })
+      setSendResetEmail(false) // Don't send reset email when editing
     } else {
       setFormData({
         name: "",
         email: "",
         status: "active",
-        plan: plans[0]?._id || plans[0]?.id || "",
+        plan: [],
         revenue: 0,
       })
+      setSendResetEmail(true) // Default to true for new users
     }
   }, [user, mode, plans, open])
 
@@ -70,7 +82,7 @@ export function UserFormDialog({
     e.preventDefault()
     setLoading(true)
     try {
-      await onSubmit(formData)
+      await onSubmit(formData, mode === "create" ? sendResetEmail : false)
       onOpenChange(false)
     } catch (error) {
       console.error("Failed to submit form:", error)
@@ -134,22 +146,44 @@ export function UserFormDialog({
             </div>
 
             <div>
-              <Label htmlFor="plan">Plan</Label>
-              <Select
-                value={formData.plan}
-                onValueChange={(value) => setFormData({ ...formData, plan: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {plans.map((plan) => (
-                    <SelectItem key={plan._id || plan.id} value={plan._id || plan.id || ''}>
-                      {plan.name} - ${plan.price}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Plans (Select multiple)</Label>
+              <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                {plans.length === 0 ? (
+                  <p className="text-sm text-gray-500">No plans available</p>
+                ) : (
+                  plans.map((plan) => {
+                    const planId = plan._id || plan.id || '';
+                    const isChecked = formData.plan.includes(planId);
+
+                    return (
+                      <div key={planId} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`plan-${planId}`}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFormData({ ...formData, plan: [...formData.plan, planId] });
+                            } else {
+                              setFormData({ ...formData, plan: formData.plan.filter(id => id !== planId) });
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`plan-${planId}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {plan.name} - ${plan.price}
+                        </Label>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              {formData.plan.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.plan.length} plan{formData.plan.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
             </div>
 
             <div>
@@ -164,6 +198,22 @@ export function UserFormDialog({
                 required
               />
             </div>
+
+            {mode === "create" && (
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox
+                  id="sendResetEmail"
+                  checked={sendResetEmail}
+                  onCheckedChange={(checked) => setSendResetEmail(checked as boolean)}
+                />
+                <Label
+                  htmlFor="sendResetEmail"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Send password reset email to user (recommended)
+                </Label>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

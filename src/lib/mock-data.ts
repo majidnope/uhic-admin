@@ -9,7 +9,7 @@ export interface User {
   approvedBy?: string
   approvedAt?: string
   rejectionReason?: string
-  plan: string | { _id?: string; id?: string; name: string }
+  plan: Array<string | { _id?: string; id?: string; name: string }>
   joinDate: string
   lastLogin: string
   revenue: number
@@ -41,7 +41,7 @@ export const mockUsers: User[] = [
     name: "John Smith",
     email: "john@example.com",
     status: "active",
-    plan: "Pro",
+    plan: ["Pro"],
     joinDate: "2024-01-15",
     lastLogin: "2024-09-16",
     revenue: 299
@@ -51,7 +51,7 @@ export const mockUsers: User[] = [
     name: "Sarah Johnson",
     email: "sarah@example.com",
     status: "active",
-    plan: "Enterprise",
+    plan: ["Enterprise"],
     joinDate: "2024-02-20",
     lastLogin: "2024-09-15",
     revenue: 999
@@ -61,7 +61,7 @@ export const mockUsers: User[] = [
     name: "Mike Chen",
     email: "mike@example.com",
     status: "inactive",
-    plan: "Basic",
+    plan: ["Basic"],
     joinDate: "2024-03-10",
     lastLogin: "2024-09-10",
     revenue: 99
@@ -71,7 +71,7 @@ export const mockUsers: User[] = [
     name: "Emily Davis",
     email: "emily@example.com",
     status: "active",
-    plan: "Pro",
+    plan: ["Pro"],
     joinDate: "2024-01-05",
     lastLogin: "2024-09-16",
     revenue: 299
@@ -81,7 +81,7 @@ export const mockUsers: User[] = [
     name: "Alex Rodriguez",
     email: "alex@example.com",
     status: "suspended",
-    plan: "Basic",
+    plan: ["Basic"],
     joinDate: "2024-04-12",
     lastLogin: "2024-09-08",
     revenue: 0
@@ -200,7 +200,7 @@ export const recentTransactions = [
   {
     id: "1",
     user: "John Smith",
-    plan: "Pro",
+    plan: ["Pro"],
     amount: 299,
     date: "2024-09-16",
     status: "completed"
@@ -208,7 +208,7 @@ export const recentTransactions = [
   {
     id: "2",
     user: "Sarah Johnson",
-    plan: "Enterprise",
+    plan: ["Enterprise"],
     amount: 999,
     date: "2024-09-15",
     status: "completed"
@@ -216,7 +216,7 @@ export const recentTransactions = [
   {
     id: "3",
     user: "Mike Chen",
-    plan: "Basic",
+    plan: ["Basic"],
     amount: 99,
     date: "2024-09-14",
     status: "pending"
@@ -224,7 +224,7 @@ export const recentTransactions = [
   {
     id: "4",
     user: "Emily Davis",
-    plan: "Pro",
+    plan: ["Pro"],
     amount: 299,
     date: "2024-09-13",
     status: "completed"
@@ -232,7 +232,7 @@ export const recentTransactions = [
   {
     id: "5",
     user: "Alex Wilson",
-    plan: "Basic",
+    plan: ["Basic"],
     amount: 99,
     date: "2024-09-12",
     status: "failed"

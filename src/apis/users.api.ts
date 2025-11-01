@@ -46,4 +46,11 @@ export const usersApi = {
       body: JSON.stringify({ reason }),
     });
   },
+
+  sendPasswordResetEmail: async (email: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>('/console/users/send-reset-email', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
 };
