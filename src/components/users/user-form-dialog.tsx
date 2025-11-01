@@ -49,13 +49,16 @@ export function UserFormDialog({
 
   useEffect(() => {
     if (user && mode === "edit") {
-      // Handle plan as array or single value
+      // Handle plan as array
       let planIds: string[] = [];
       if (Array.isArray(user.plan)) {
-        planIds = user.plan.map(p => typeof p === 'string' ? p : (p?._id || p?.id || "")).filter(Boolean);
-      } else if (user.plan) {
-        const planId = typeof user.plan === 'string' ? user.plan : (user.plan?._id || user.plan?.id || "");
-        if (planId) planIds = [planId];
+        planIds = user.plan.map(p => {
+          if (typeof p === 'string') return p;
+          if (typeof p === 'object' && p !== null) {
+            return (p as any)._id || (p as any).id || "";
+          }
+          return "";
+        }).filter(Boolean);
       }
 
       setFormData({

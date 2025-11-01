@@ -63,11 +63,19 @@ export function ViewUserDialog({ open, onOpenChange, user }: ViewUserDialogProps
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-2 text-gray-600 mb-2">
                 <CreditCard className="h-4 w-4" />
-                <span className="text-sm font-medium">Plan</span>
+                <span className="text-sm font-medium">Plans</span>
               </div>
-              <p className="text-lg font-semibold text-gray-900">
-                {typeof user.plan === 'string' ? user.plan : user.plan?.name}
-              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {Array.isArray(user.plan) && user.plan.length > 0 ? (
+                  user.plan.map((p, idx) => (
+                    <Badge key={idx} variant="outline" className="text-sm">
+                      {typeof p === 'string' ? p : p?.name || 'Unknown'}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">No plans</span>
+                )}
+              </div>
             </div>
 
             <div className="p-4 bg-gray-50 rounded-lg">
